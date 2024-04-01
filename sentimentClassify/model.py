@@ -100,13 +100,20 @@ class TransformerClassifier(nn.Module):
         return logits
 
 
-
 def testTransformerModel():
     """
     测试Transformer模型
     """
+    # 创建模型
     model = TransformerClassifier(vocab_size=5000, embed_size=100, num_heads=4, num_layers=2, num_classes=2)
     print(model)
+    # 创建一些虚拟的输入数据
+    inputs = torch.randint(0, 5000, (32, 10))  # 32是batch_size，10是序列长度
+
+    # 测试模型的输出
+    outputs = model(inputs)
+
+    print(outputs)
 
 
 if __name__ == "__main__":

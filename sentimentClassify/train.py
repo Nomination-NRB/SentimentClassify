@@ -73,12 +73,12 @@ if __name__ == '__main__':
     num_layers = 2
     bidirectional = True
     num_classes = 2
-    drop_prob = 0.9
+    drop_prob = 0.5
     lr = 0.01
     epochs = 1
 
-    net = BiRNN(vocab_size=len(vocab_dict), embed_size=embed_size, num_hiddens=num_hiddens, num_layers=num_layers, bidirectional=bidirectional, num_classes=num_classes, drop_prob=drop_prob)
-    # net = TransformerClassifier(vocab_size=len(vocab_dict), embed_size=embed_size, num_heads=4, num_layers=num_layers, num_classes=num_classes)
+    # net = BiRNN(vocab_size=len(vocab_dict), embed_size=embed_size, num_hiddens=num_hiddens, num_layers=num_layers, bidirectional=bidirectional, num_classes=num_classes, drop_prob=drop_prob)
+    net = TransformerClassifier(vocab_size=len(vocab_dict), embed_size=embed_size, num_heads=4, num_layers=num_layers, num_classes=num_classes)
     print(net)
 
     optimizer = torch.optim.Adam(net.parameters(), lr=lr)

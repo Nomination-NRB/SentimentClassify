@@ -111,8 +111,8 @@ def makeDataset(batchsize=64, maxlength=64, mincount=5):
     testFeatures, testLabels = preProcessData(testTokenData, testData, vocab, maxlength)
     train_dataset = Data.TensorDataset(trainFeatures, trainLabels)
     test_dataset = Data.TensorDataset(testFeatures, testLabels)
-    train_loader = Data.DataLoader(train_dataset, batch_size=batchsize, shuffle=True)
-    test_loader = Data.DataLoader(test_dataset, batch_size=batchsize, shuffle=True)
+    train_loader = Data.DataLoader(train_dataset, batch_size=batchsize, shuffle=True, drop_last=True)
+    test_loader = Data.DataLoader(test_dataset, batch_size=batchsize, shuffle=True, drop_last=True)
     return train_loader, test_loader, vocab
 
 

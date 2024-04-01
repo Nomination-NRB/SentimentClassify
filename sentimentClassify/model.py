@@ -92,12 +92,13 @@ class TransformerClassifier(nn.Module):
     def forward(self, inputs, attention_mask=None):
         embeddings = self.embedding(inputs)
         embeddings = self.pos_encoder(embeddings)
-        embeddings = embeddings.permute(1, 0, 2)
         transformer_output = self.transformer_encoder(embeddings, src_key_padding_mask=attention_mask)
-        pooled_output = F.avg_pool1d(transformer_output.permute(1, 2, 0), kernel_size=transformer_output.size(1)).squeeze(2)
+        # 取 transformer_output 的最后一层作为 pooled_output
+        pooled_output = transformer_output[-1, :, :]
         pooled_output = self.dropout(pooled_output)
         logits = self.decoder(pooled_output)
         return logits
+
 
 
 def testTransformerModel():

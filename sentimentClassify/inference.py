@@ -63,6 +63,7 @@ def makeIterOfFile(filePath='data/infer.txt', vocab_path='output/model.vocab', b
             line = line.strip()
             if line:
                 data.append([line, -1])
+
     vocab = utils.loadVocab(vocab_path)
     tokenizedData = utils.getTokenized(data)
     features, labels = utils.preProcessData(tokenizedData, data, vocab, max_length)

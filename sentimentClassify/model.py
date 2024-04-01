@@ -1,5 +1,6 @@
 import torch
-from torch import nn
+import torch.nn as nn
+import torch.nn.functional as F
 
 
 class BiRNN(nn.Module):
@@ -48,7 +49,7 @@ class BiRNN(nn.Module):
         return outs
 
 
-def testModel():
+def testModelBiRNN():
     """
     测试模型
     """
@@ -56,6 +57,57 @@ def testModel():
     print(model)
 
 
+class PositionalEncoding(nn.Module):
+    def __init__(self, d_model, max_len=5000):
+        super(PositionalEncoding, self).__init__()
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-torch.log(torch.tensor(10000.0)) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0).transpose(0, 1)
+        self.register_buffer('pe', pe)
+
+    def forward(self, x):
+        return x + self.pe[:x.size(0), :]
+
+
+class TransformerClassifier(nn.Module):
+    def __init__(self, vocab_size, embed_size, num_heads, num_layers, num_classes, drop_prob=0.5):
+        super(TransformerClassifier, self).__init__()
+        self.embedding = nn.Embedding(vocab_size, embed_size)
+        self.pos_encoder = PositionalEncoding(embed_size)
+        encoder_layers = nn.TransformerEncoderLayer(d_model=embed_size, nhead=num_heads)
+        self.transformer_encoder = nn.TransformerEncoder(encoder_layers, num_layers)
+        self.decoder = nn.Linear(embed_size, num_classes)
+        self.dropout = nn.Dropout(drop_prob)
+        self.init_weights()
+
+    def init_weights(self):
+        initrange = 0.1
+        self.embedding.weight.data.uniform_(-initrange, initrange)
+        self.decoder.bias.data.zero_()
+        self.decoder.weight.data.uniform_(-initrange, initrange)
+
+    def forward(self, inputs, attention_mask=None):
+        embeddings = self.embedding(inputs)
+        embeddings = self.pos_encoder(embeddings)
+        embeddings = embeddings.permute(1, 0, 2)
+        transformer_output = self.transformer_encoder(embeddings, src_key_padding_mask=attention_mask)
+        pooled_output = F.avg_pool1d(transformer_output.permute(1, 2, 0), kernel_size=transformer_output.size(1)).squeeze(2)
+        pooled_output = self.dropout(pooled_output)
+        logits = self.decoder(pooled_output)
+        return logits
+
+
+def testTransformerModel():
+    """
+    测试Transformer模型
+    """
+    model = TransformerClassifier(vocab_size=5000, embed_size=100, num_heads=4, num_layers=2, num_classes=2)
+    print(model)
+
+
 if __name__ == "__main__":
-    testModel()
+    testTransformerModel()
     

@@ -2,7 +2,9 @@ import time
 import torch
 import utils
 from model import BiRNN
+from model import TransformerClassifier
 from torch import nn
+from torch.utils.tensorboard import SummaryWriter
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -29,10 +31,11 @@ def accuracy(data_iter, model, device):
     return acc_sum / n
 
 
-def train(train_loader, test_loader, model, loss, optimizer, device, epochs):
+def train(train_loader, test_loader, model, loss, optimizer, device, epochs, writer):
     model = model.to(device)
-    print("training on ", device)
+    print(f"training on => {device}")
     batch_count = 0
+    best_test_acc = 0.0  # 初始化最佳测试准确率
     for epoch in range(epochs):
         train_l_sum, train_acc_sum, n, start = 0.0, 0.0, 0, time.time()
         model.train()
@@ -49,11 +52,19 @@ def train(train_loader, test_loader, model, loss, optimizer, device, epochs):
             n += y.shape[0]
             batch_count += 1
         test_acc = accuracy(test_loader, model, device)
-        print('epoch %d, loss %.4f, train acc %.3f, test acc %.3f, time %.1f sec'
-              % (epoch + 1, train_l_sum / batch_count, train_acc_sum / n, test_acc, time.time() - start))
+        writer.add_scalar('Loss/train', train_l_sum / batch_count, epoch)
+        writer.add_scalar('Accuracy/train', train_acc_sum / n, epoch)
+        writer.add_scalar('Accuracy/test', test_acc, epoch)
+        print(f'epoch {epoch + 1}, loss {train_l_sum / batch_count:.4f}, train acc {train_acc_sum / n:.3f}, test acc {test_acc:.3f}, time {time.time() - start:.1f} sec')
+        if test_acc > best_test_acc:  # 如果当前测试准确率更高，则保存模型
+            best_test_acc = test_acc
+            outputModelPath = f'output/model_acc_{test_acc:.4f}.pt'
+            torch.save(model, outputModelPath)
 
 
 if __name__ == '__main__':
+    writer = SummaryWriter('logs')
+
     train_loader, test_loader, vocab_dict = utils.makeDataset()
     utils.saveVocab(vocab_dict)
 
@@ -64,15 +75,13 @@ if __name__ == '__main__':
     num_classes = 2
     drop_prob = 0.9
     lr = 0.01
-    epochs = 10
+    epochs = 1
 
-    net = BiRNN(vocab_size=len(vocab_dict), embed_size=embed_size, num_hiddens=num_hiddens, num_layers=num_layers,
-                bidirectional=bidirectional, num_classes=num_classes, drop_prob=drop_prob)
+    net = BiRNN(vocab_size=len(vocab_dict), embed_size=embed_size, num_hiddens=num_hiddens, num_layers=num_layers, bidirectional=bidirectional, num_classes=num_classes, drop_prob=drop_prob)
+    # net = TransformerClassifier(vocab_size=len(vocab_dict), embed_size=embed_size, num_heads=4, num_layers=num_layers, num_classes=num_classes)
     print(net)
 
     optimizer = torch.optim.Adam(net.parameters(), lr=lr)
     loss = nn.CrossEntropyLoss()
 
-    train(train_loader, test_loader, net, loss, optimizer, device, epochs)
-    outputModelPath = 'output/model.pt'
-    torch.save(net, outputModelPath)
+    train(train_loader, test_loader, net, loss, optimizer, device, epochs, writer)
